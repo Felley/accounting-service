@@ -3,96 +3,94 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 
 	"github.com/Felley/accounting-service/api/data"
+	"github.com/Felley/accounting-service/protos/accounting"
 	"github.com/gorilla/mux"
 )
 
-// EmployeeHandler ...
+// EmployeeHandler handles ...
 type EmployeeHandler struct {
-	l *log.Logger
+	l  *log.Logger
+	ec accounting.EmployeeAccountingClient
 }
 
-// NewEmployeeHandler ...
-func NewEmployeeHandler(l *log.Logger) *EmployeeHandler {
-	return &EmployeeHandler{l}
+// NewEmployeeHandler creates handler for employee API processing
+func NewEmployeeHandler(l *log.Logger, ec accounting.EmployeeAccountingClient) *EmployeeHandler {
+	return &EmployeeHandler{l, ec}
 }
 
-// AddEmployee ...
+// AddEmployee sends query for adding employee to DB
 func (e *EmployeeHandler) AddEmployee(w http.ResponseWriter, req *http.Request) {
-	e.l.Println("Employee add person called")
 	employee := &data.Employee{}
 	err := employee.FromJSON(req.Body)
+	if err != io.EOF {
+		http.Error(w, "Invalid input", 405)
+		return
+	}
+
+	r := &accounting.EmployeeRequest{
+		ID:         employee.ID,
+		Name:       employee.Name,
+		SecondName: employee.SecondName,
+		Surname:    employee.Surname,
+		HireDate:   employee.HireDate,
+		Position:   employee.Position,
+		CompanyID:  employee.CompanyID,
+	}
+
+	_, err = e.ec.AddEmployee(context.Background(), r)
 	if err != nil {
 		http.Error(w, "Invalid input", 405)
+		return
 	}
-
-	e.l.Printf("Person: %#v", employee)
 }
 
-// ErrEmployeeNotFound ...
-var ErrEmployeeNotFound = fmt.Errorf("Employee not found")
-
-// findEmployee ...
-func (e *EmployeeHandler) findEmployee(id int64) (*data.Employee, error) {
-	var employeeList []*data.Employee
-	var found bool
-	for _, employee := range employeeList {
-		if employee.ID == id {
-			found = true
-		}
-	}
-	if !found {
-		return nil, ErrEmployeeNotFound
-	}
-	return nil, nil
-}
-
-// GetEmployee ...
+// GetEmployee looks for employee by specified id
 func (e *EmployeeHandler) GetEmployee(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		w.WriteHeader(400)
+		http.Error(w, "Invalid ID supplied", 400)
 	}
 	fmt.Println(id)
 }
 
-// UpdateEmployee ...
-func (e *EmployeeHandler) UpdateEmployee(w http.ResponseWriter, req *http.Request) {
-	// FIXME: fix bug with links ends by /1223ssasdad
-	r := regexp.MustCompile(`/([0-9]+)\/{0,1}`)
-	g := r.FindAllStringSubmatch(req.URL.Path, -1)
-	if len(g) != 1 {
-		http.Error(w, "Invalid ID supplied", 400)
-		return
-	}
-
-	if len(g[0]) != 2 {
-		http.Error(w, "Invalid ID supplied", 400)
-		return
-	}
-
-	id, err := strconv.Atoi(g[0][1])
+// PostFormEmployee updates employee data by incomming form data
+func (e *EmployeeHandler) PostFormEmployee(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseMultipartForm(128 * 1024)
 	if err != nil {
-		http.Error(w, "Invalid ID supplied", 400)
+		http.Error(w, "Invalid input", 405)
+		w.WriteHeader(405)
 		return
+	}
+}
+
+// UpdateEmployee updates employee data by incomming json data
+func (e *EmployeeHandler) UpdateEmployee(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "	Invalid ID supplied", 400)
+	}
+
+	employee := &data.Employee{}
+	err = employee.FromJSON(req.Body)
+	if err != nil {
+		http.Error(w, "Invalid input", 405)
 	}
 	e.l.Println("got id", id)
 }
 
-// DeleteEmployee ...
+// DeleteEmployee deletes employee by specified id
 func (e *EmployeeHandler) DeleteEmployee(w http.ResponseWriter, req *http.Request) {
 }
 
-// KeyEmployee ...
-type KeyEmployee struct{}
-
-// MiddlewareEmployeeValidation ...
+// MiddlewareEmployeeValidation validates incoming json data
 func (e *EmployeeHandler) MiddlewareEmployeeValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		employee := &data.Employee{}
@@ -100,9 +98,15 @@ func (e *EmployeeHandler) MiddlewareEmployeeValidation(next http.Handler) http.H
 		err := employee.FromJSON(r.Body)
 		if err != nil {
 			http.Error(rw, "Invalid input", 405)
+			return
 		}
 
-		ctx := context.WithValue(r.Context(), KeyEmployee{}, employee)
+		err = employee.Validate()
+		if err != nil {
+			http.Error(rw, "Invalid input", 405)
+			return
+		}
+		ctx := context.WithValue(r.Context(), data.Employee{}, employee)
 		req := r.WithContext(ctx)
 
 		next.ServeHTTP(rw, req)

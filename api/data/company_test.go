@@ -5,25 +5,17 @@ import (
 	"testing"
 )
 
-func TestCheckEmployeeValidation(t *testing.T) {
+func TestCheckCompanyValidation(t *testing.T) {
 	t.Parallel()
 	var tableDrivenTests = []struct {
 		testName string
-		in       *Employee
+		in       *Company
 		expected error
 	}{
 		{
 			"Empty",
-			&Employee{},
+			&Company{},
 			errors.New("Empty struct"),
-		},
-		{
-			"Wrong date",
-			&Employee{
-				Name:     "Aaron",
-				HireDate: "2123e",
-			},
-			errors.New("Invalid date"),
 		},
 	}
 

@@ -9,17 +9,31 @@ import (
 	"time"
 
 	"github.com/Felley/accounting-service/api/handlers"
+	"github.com/Felley/accounting-service/protos/accounting"
 	"github.com/gorilla/mux"
+	"google.golang.org/grpc"
 )
 
+// Starting point for API service
 func main() {
 	logger := log.New(os.Stdout, "accounting-api", log.LstdFlags)
 	employeeLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
 
-	handler := handlers.NewEmployeeHandler(employeeLogger)
+	conn, err := grpc.Dial("localhost:9092", grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
 
 	router := mux.NewRouter()
 
+	// create gRPC client
+	employeeClient := accounting.NewEmployeeAccountingClient(conn)
+
+	// create the handlers
+	handler := handlers.NewEmployeeHandler(employeeLogger, employeeClient)
+
+	// configure routes
 	postEmployeeRouter := router.Methods(http.MethodPost).Subrouter()
 	postEmployeeRouter.HandleFunc("/employee", handler.AddEmployee)
 	postEmployeeRouter.Use(handler.MiddlewareEmployeeValidation)
@@ -32,13 +46,13 @@ func main() {
 	getEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.GetEmployee)
 
 	postCompanyEmployeeRouter := router.Methods(http.MethodPost).Subrouter()
-	postCompanyEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.UpdateEmployee)
+	postCompanyEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.PostFormEmployee)
 
-	deleteEmployeeRouter := router.Methods(http.MethodPost).Subrouter()
+	deleteEmployeeRouter := router.Methods(http.MethodDelete).Subrouter()
 	deleteEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.DeleteEmployee)
 
 	server := http.Server{
-		Addr:    ":8080",
+		Addr:    ":9090",
 		Handler: router,
 	}
 

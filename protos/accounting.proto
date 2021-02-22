@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+service EmployeeAccounting {
+    rpc AddEmployee(EmployeeRequest) returns(EmployeeResponce);
+    rpc UpdateEmployee(EmployeeRequest) returns(EmployeeResponce);
+    rpc GetEmployee(EmployeeRequest) returns(EmployeeResponce);
+    rpc DeleteEmployee(EmployeeRequest) returns(EmployeeResponce);
+}
+
+service CompanyAccounting {
+    rpc AddCompany(CompanyRequest) returns(CompanyResponce);
+    rpc UpdateCompany(CompanyRequest) returns(CompanyResponce);
+    rpc GetCompany(CompanyRequest) returns(CompanyResponce);
+    rpc DeleteCompany(CompanyRequest) returns(CompanyResponce);
+    rpc GetCompanyEmployees(CompanyRequest) returns(CompanyResponce);
+}
+
+message EmployeeRequest {
+    int64  ID = 1;
+    string Name = 2;
+    string SecondName = 3;
+    string Surname = 4;
+    string HireDate = 5;
+    string Position = 6;
+    int64  CompanyID = 7;
+}
+
+message EmployeeResponce {
+    int64  StatusCode = 1;
+    int64  ID = 2;
+    string Name = 3;
+    string SecondName = 4;
+    string Surname = 5;
+    string HireDate = 6;
+    string Position = 7;
+    int64  CompanyID = 8;
+}
+
+message CompanyRequest {
+    int64  ID = 1;
+    string Name = 2;
+    string LagalForm = 3;
+}
+
+message CompanyResponce {
+    int64  StatusCode = 1;
+    int64  ID = 2;
+    string Name = 3;
+    string LagalForm = 4;
+}

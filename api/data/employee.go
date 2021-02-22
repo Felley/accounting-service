@@ -39,13 +39,3 @@ func validatePosition(fl validator.FieldLevel) bool {
 		return false
 	}
 }
-
-// ToBytes marshalls json to
-func (e *Employee) ToBytes(w io.Writer) error {
-	data, err := json.Marshal(e)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(data)
-	return err
-}

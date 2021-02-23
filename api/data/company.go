@@ -29,7 +29,7 @@ func (e *Company) Validate() error {
 
 func validateLegalForm(fl validator.FieldLevel) bool {
 	switch fl.Field().String() {
-	case "OOO", "ZAO", "IP":
+	case "OOO", "ZAO", "IP", "":
 		return true
 	default:
 		return false

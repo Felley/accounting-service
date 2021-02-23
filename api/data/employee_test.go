@@ -25,6 +25,15 @@ func TestCheckEmployeeValidation(t *testing.T) {
 			},
 			errors.New("Invalid date"),
 		},
+
+		{
+			"Wrong date",
+			&Employee{
+				Name:     "Aaron",
+				HireDate: "2020-09-01",
+			},
+			nil,
+		},
 	}
 
 	for _, test := range tableDrivenTests {

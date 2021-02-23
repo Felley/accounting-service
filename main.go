@@ -18,6 +18,7 @@ import (
 func main() {
 	logger := log.New(os.Stdout, "accounting-api", log.LstdFlags)
 	employeeLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
+	companyLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
 
 	conn, err := grpc.Dial("localhost:9092", grpc.WithInsecure())
 	if err != nil {
@@ -29,27 +30,47 @@ func main() {
 
 	// create gRPC client
 	employeeClient := accounting.NewEmployeeAccountingClient(conn)
+	companyClient := accounting.NewCompanyAccountingClient(conn)
 
 	// create the handlers
-	handler := handlers.NewEmployeeHandler(employeeLogger, employeeClient)
+	employeeHandler := handlers.NewEmployeeHandler(employeeLogger, employeeClient)
+	companyHandler := handlers.NewCompanyHandler(companyLogger, companyClient)
 
-	// configure routes
+	// configure employee routes
 	postEmployeeRouter := router.Methods(http.MethodPost).Subrouter()
-	postEmployeeRouter.HandleFunc("/employee", handler.AddEmployee)
-	postEmployeeRouter.Use(handler.MiddlewareEmployeeValidation)
+	postEmployeeRouter.HandleFunc("/employee", employeeHandler.AddEmployee)
+	postEmployeeRouter.Use(employeeHandler.MiddlewareEmployeeValidation)
 
 	putEmployeeRouter := router.Methods(http.MethodPut).Subrouter()
-	putEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.UpdateEmployee)
-	putEmployeeRouter.Use(handler.MiddlewareEmployeeValidation)
+	putEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", employeeHandler.UpdateEmployee)
+	putEmployeeRouter.Use(employeeHandler.MiddlewareEmployeeValidation)
 
 	getEmployeeRouter := router.Methods(http.MethodGet).Subrouter()
-	getEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.GetEmployee)
+	getEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", employeeHandler.GetEmployee)
 
-	postCompanyEmployeeRouter := router.Methods(http.MethodPost).Subrouter()
-	postCompanyEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.PostFormEmployee)
+	postEmployeeFormRouter := router.Methods(http.MethodPost).Subrouter()
+	postEmployeeFormRouter.HandleFunc("/employee/{id:[0-9]+}", employeeHandler.PostFormEmployee)
 
 	deleteEmployeeRouter := router.Methods(http.MethodDelete).Subrouter()
-	deleteEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", handler.DeleteEmployee)
+	deleteEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", employeeHandler.DeleteEmployee)
+
+	// configure company routes
+	postCompanyRouter := router.Methods(http.MethodPost).Subrouter()
+	postCompanyRouter.HandleFunc("/company", companyHandler.AddCompany)
+	postCompanyRouter.Use(companyHandler.MiddlewareCompanyValidation)
+
+	putCompanyRouter := router.Methods(http.MethodPut).Subrouter()
+	putCompanyRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.UpdateCompany)
+	putCompanyRouter.Use(companyHandler.MiddlewareCompanyValidation)
+
+	getCompanyRouter := router.Methods(http.MethodGet).Subrouter()
+	getCompanyRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.GetCompany)
+
+	postCompanyFormRouter := router.Methods(http.MethodPost).Subrouter()
+	postCompanyFormRouter.HandleFunc("/copmany/{id:[0-9]+}", companyHandler.PostFormCompany)
+
+	deleteCompanyRouter := router.Methods(http.MethodDelete).Subrouter()
+	deleteCompanyRouter.HandleFunc("/copmany/{id:[0-9]+}", companyHandler.DeleteCompany)
 
 	server := http.Server{
 		Addr:    ":9090",

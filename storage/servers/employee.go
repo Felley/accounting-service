@@ -23,21 +23,24 @@ func NewEmployeeServer(db *sql.DB) *EmployeeServer {
 
 // AddEmployee ...
 func (es *EmployeeServer) AddEmployee(context.Context, *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
-	fmt.Println("Hi from back!")
+	fmt.Println("Hi from AddEmployee!")
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEmployee not implemented")
 }
 
 // UpdateEmployee ...
 func (es *EmployeeServer) UpdateEmployee(context.Context, *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
+	fmt.Println("Hi from UpdateEmployee!")
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEmployee not implemented")
 }
 
 // GetEmployee ...
 func (es *EmployeeServer) GetEmployee(context.Context, *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
+	fmt.Println("Hi from GetEmployee!")
 	return nil, status.Errorf(codes.Unimplemented, "method GetEmployee not implemented")
 }
 
 // DeleteEmployee ...
 func (es *EmployeeServer) DeleteEmployee(context.Context, *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
+	fmt.Println("Hi from DeleteEmployee!")
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteEmployee not implemented")
 }

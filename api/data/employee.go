@@ -13,7 +13,7 @@ type Employee struct {
 	Name       string `json:"name" validate:"required"`
 	SecondName string `json:"secondName"`
 	Surname    string `json:"surname"`
-	HireDate   string `json:"hireDate" validate:"datetime"`
+	HireDate   string `json:"hireDate" validate:"datetime=2006-01-02"`
 	Position   string `json:"position" validate:"position"`
 	CompanyID  int64  `json:"companyId"`
 }
@@ -33,7 +33,7 @@ func (e *Employee) Validate() error {
 
 func validatePosition(fl validator.FieldLevel) bool {
 	switch fl.Field().String() {
-	case "developer", "manager", "quality assurance", "business analyst":
+	case "developer", "manager", "quality assurance", "business analyst", "":
 		return true
 	default:
 		return false

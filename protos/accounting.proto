@@ -12,7 +12,7 @@ service CompanyAccounting {
     rpc UpdateCompany(CompanyRequest) returns(CompanyResponce);
     rpc GetCompany(CompanyRequest) returns(CompanyResponce);
     rpc DeleteCompany(CompanyRequest) returns(CompanyResponce);
-    rpc GetCompanyEmployees(CompanyRequest) returns(CompanyResponce);
+    rpc GetCompanyEmployees(CompanyRequest) returns(CompanyEmployeesResponce);
 }
 
 message EmployeeRequest {
@@ -47,4 +47,9 @@ message CompanyResponce {
     int64  ID = 2;
     string Name = 3;
     string LegalForm = 4;
+}
+
+message CompanyEmployeesResponce {
+    int64  StatusCode = 1;
+    repeated EmployeeResponce Employees = 2;
 }

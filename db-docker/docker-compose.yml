@@ -9,3 +9,7 @@ services:
       MYSQL_DATABASE: accounting_db
     ports:
       - "3306:3306"
+  adminer:
+        image: adminer
+        ports:
+            - 8080:8080

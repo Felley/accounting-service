@@ -66,7 +66,7 @@ func (c *CompanyHandler) GetCompany(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	id, err := strconv.ParseInt(vars["id"], 10, 64)
-	if err != nil {
+	if err != nil || id < 1 {
 		http.Error(rw, "Invalid ID supplied", 400)
 		return
 	}
@@ -106,8 +106,8 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 
 	company := &data.Company{
 		ID:        id,
-		Name:      r.Form.Get("id"),
-		LegalForm: r.Form.Get("legalForm"),
+		Name:      r.Form.Get("name"),
+		LegalForm: r.Form.Get("status"),
 	}
 
 	err = company.Validate()
@@ -141,6 +141,28 @@ func (c *CompanyHandler) DeleteCompany(rw http.ResponseWriter, r *http.Request) 
 	_, err = c.cc.DeleteCompany(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
 		http.Error(rw, "Unexpected error while sending answer", 404)
+	}
+}
+
+// GetCompanyEmployees ...
+func (c *CompanyHandler) GetCompanyEmployees(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "application/json")
+	vars := mux.Vars(r)
+	id, err := strconv.ParseInt(vars["id"], 10, 64)
+	if err != nil || id < 1 {
+		http.Error(rw, "Invalid ID supplied", 400)
+		return
+	}
+	resp, err := c.cc.GetCompanyEmployees(context.Background(), &accounting.CompanyRequest{ID: id})
+	if err != nil {
+		http.Error(rw, "Company not found", 404)
+		return
+	}
+	enc := json.NewEncoder(rw)
+	err = enc.Encode(resp.Employees)
+	if err != nil {
+		http.Error(rw, "Unexpected error while sending answer", 404)
+		return
 	}
 }
 

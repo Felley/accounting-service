@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net"
 	"os"
 
@@ -16,6 +17,8 @@ import (
 // Starting storage processing service
 func main() {
 	gc := grpc.NewServer()
+	employeeServerLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
+	companyServerLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
 
 	db, err := sql.Open("mysql", "root:root@tcp(0.0.0.0:3306)/accounting_db")
 	if err != nil {
@@ -24,8 +27,8 @@ func main() {
 	_ = tables.CreateEmployeeTable(db)
 	_ = tables.CreateCompanyTable(db)
 	_ = tables.ListTables(db)
-	es := servers.NewEmployeeServer(db)
-	cs := servers.NewCompanyServer(db)
+	es := servers.NewEmployeeServer(db, employeeServerLogger)
+	cs := servers.NewCompanyServer(db, companyServerLogger)
 	defer db.Close()
 
 	accounting.RegisterEmployeeAccountingServer(gc, es)

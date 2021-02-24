@@ -216,7 +216,7 @@ type CompanyAccountingClient interface {
 	UpdateCompany(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyResponce, error)
 	GetCompany(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyResponce, error)
 	DeleteCompany(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyResponce, error)
-	GetCompanyEmployees(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyResponce, error)
+	GetCompanyEmployees(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyEmployeesResponce, error)
 }
 
 type companyAccountingClient struct {
@@ -263,8 +263,8 @@ func (c *companyAccountingClient) DeleteCompany(ctx context.Context, in *Company
 	return out, nil
 }
 
-func (c *companyAccountingClient) GetCompanyEmployees(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyResponce, error) {
-	out := new(CompanyResponce)
+func (c *companyAccountingClient) GetCompanyEmployees(ctx context.Context, in *CompanyRequest, opts ...grpc.CallOption) (*CompanyEmployeesResponce, error) {
+	out := new(CompanyEmployeesResponce)
 	err := c.cc.Invoke(ctx, "/CompanyAccounting/GetCompanyEmployees", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -280,7 +280,7 @@ type CompanyAccountingServer interface {
 	UpdateCompany(context.Context, *CompanyRequest) (*CompanyResponce, error)
 	GetCompany(context.Context, *CompanyRequest) (*CompanyResponce, error)
 	DeleteCompany(context.Context, *CompanyRequest) (*CompanyResponce, error)
-	GetCompanyEmployees(context.Context, *CompanyRequest) (*CompanyResponce, error)
+	GetCompanyEmployees(context.Context, *CompanyRequest) (*CompanyEmployeesResponce, error)
 	mustEmbedUnimplementedCompanyAccountingServer()
 }
 
@@ -300,7 +300,7 @@ func (UnimplementedCompanyAccountingServer) GetCompany(context.Context, *Company
 func (UnimplementedCompanyAccountingServer) DeleteCompany(context.Context, *CompanyRequest) (*CompanyResponce, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteCompany not implemented")
 }
-func (UnimplementedCompanyAccountingServer) GetCompanyEmployees(context.Context, *CompanyRequest) (*CompanyResponce, error) {
+func (UnimplementedCompanyAccountingServer) GetCompanyEmployees(context.Context, *CompanyRequest) (*CompanyEmployeesResponce, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetCompanyEmployees not implemented")
 }
 func (UnimplementedCompanyAccountingServer) mustEmbedUnimplementedCompanyAccountingServer() {}

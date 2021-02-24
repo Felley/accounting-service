@@ -89,28 +89,32 @@ func (e *EmployeeHandler) PostFormEmployee(rw http.ResponseWriter, r *http.Reque
 	}
 	err = r.ParseMultipartForm(128 * 1024)
 	if err != nil {
+		e.l.Printf("%s while parsing form data", err.Error())
 		http.Error(rw, "Invalid input", 405)
 		return
 	}
 	companyID, err := strconv.ParseInt(r.Form.Get("companyId"), 10, 64)
 	if err != nil {
+		e.l.Printf("%s while parsing id", err.Error())
 		http.Error(rw, "Invalid input", 405)
 		return
 	}
 	employee := &data.Employee{
 		ID:         id,
-		Name:       r.Form.Get("id"),
-		SecondName: r.Form.Get("id"),
-		Surname:    r.Form.Get("id"),
-		HireDate:   r.Form.Get("id"),
-		Position:   r.Form.Get("id"),
+		Name:       r.Form.Get("name"),
+		SecondName: r.Form.Get("secondName"),
+		Surname:    r.Form.Get("surname"),
+		HireDate:   r.Form.Get("hireDate"),
+		Position:   r.Form.Get("position"),
 		CompanyID:  companyID,
 	}
 	err = employee.Validate()
 	if err != nil {
+		e.l.Printf("%s while validating table data", err.Error())
 		http.Error(rw, "Invalid input", 405)
 		return
 	}
+
 	req := &accounting.EmployeeRequest{
 		ID:         employee.ID,
 		Name:       employee.Name,
@@ -131,12 +135,6 @@ func (e *EmployeeHandler) PostFormEmployee(rw http.ResponseWriter, r *http.Reque
 // UpdateEmployee updates employee data by incomming json data
 func (e *EmployeeHandler) UpdateEmployee(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	_, err := strconv.ParseInt(vars["id"], 10, 64)
-	if err != nil {
-		http.Error(rw, "Invalid ID supplied", 400)
-		return
-	}
 	value := r.Context().Value(employeeKey{})
 	employee := value.(*data.Employee)
 
@@ -149,7 +147,7 @@ func (e *EmployeeHandler) UpdateEmployee(rw http.ResponseWriter, r *http.Request
 		Position:   employee.Position,
 		CompanyID:  employee.CompanyID,
 	}
-	_, err = e.ec.UpdateEmployee(context.Background(), req)
+	_, err := e.ec.UpdateEmployee(context.Background(), req)
 
 	if err != nil {
 		http.Error(rw, "Unexpected error while sending answer", 404)

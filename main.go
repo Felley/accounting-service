@@ -18,7 +18,7 @@ import (
 func main() {
 	logger := log.New(os.Stdout, "accounting-api", log.LstdFlags)
 	employeeLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
-	companyLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
+	companyLogger := log.New(os.Stdout, "company-api", log.LstdFlags)
 
 	conn, err := grpc.Dial("localhost:9092", grpc.WithInsecure())
 	if err != nil {
@@ -42,7 +42,7 @@ func main() {
 	postEmployeeRouter.Use(employeeHandler.MiddlewareEmployeeValidation)
 
 	putEmployeeRouter := router.Methods(http.MethodPut).Subrouter()
-	putEmployeeRouter.HandleFunc("/employee/{id:[0-9]+}", employeeHandler.UpdateEmployee)
+	putEmployeeRouter.HandleFunc("/employee", employeeHandler.UpdateEmployee)
 	putEmployeeRouter.Use(employeeHandler.MiddlewareEmployeeValidation)
 
 	getEmployeeRouter := router.Methods(http.MethodGet).Subrouter()
@@ -56,21 +56,24 @@ func main() {
 
 	// configure company routes
 	postCompanyRouter := router.Methods(http.MethodPost).Subrouter()
-	postCompanyRouter.HandleFunc("/company", companyHandler.AddCompany)
+	postCompanyRouter.HandleFunc("/company/", companyHandler.AddCompany)
 	postCompanyRouter.Use(companyHandler.MiddlewareCompanyValidation)
 
 	putCompanyRouter := router.Methods(http.MethodPut).Subrouter()
-	putCompanyRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.UpdateCompany)
+	putCompanyRouter.HandleFunc("/company/", companyHandler.UpdateCompany)
 	putCompanyRouter.Use(companyHandler.MiddlewareCompanyValidation)
 
 	getCompanyRouter := router.Methods(http.MethodGet).Subrouter()
 	getCompanyRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.GetCompany)
 
 	postCompanyFormRouter := router.Methods(http.MethodPost).Subrouter()
-	postCompanyFormRouter.HandleFunc("/copmany/{id:[0-9]+}", companyHandler.PostFormCompany)
+	postCompanyFormRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.PostFormCompany)
 
 	deleteCompanyRouter := router.Methods(http.MethodDelete).Subrouter()
-	deleteCompanyRouter.HandleFunc("/copmany/{id:[0-9]+}", companyHandler.DeleteCompany)
+	deleteCompanyRouter.HandleFunc("/company/{id:[0-9]+}", companyHandler.DeleteCompany)
+
+	getCompanyEmpoyeesRouter := router.Methods(http.MethodGet).Subrouter()
+	getCompanyEmpoyeesRouter.HandleFunc("/company/{id:[0-9]+}/employees", companyHandler.GetCompanyEmployees)
 
 	server := http.Server{
 		Addr:    ":9090",

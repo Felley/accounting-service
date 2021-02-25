@@ -179,7 +179,7 @@ func (c *CompanyHandler) MiddlewareCompanyValidation(next http.Handler) http.Han
 		}
 		defer r.Body.Close()
 
-		if company.ID < 1 {
+		if company.ID < 0 {
 			http.Error(rw, "Invalid ID supplied", 400)
 			return
 		}

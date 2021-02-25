@@ -59,6 +59,7 @@ func (c *CompanyHandler) UpdateCompany(rw http.ResponseWriter, r *http.Request) 
 
 	_, err := c.cc.UpdateCompany(context.Background(), req)
 	if err != nil {
+		c.l.Printf("%e ocuured while updating company info", err)
 		http.Error(rw, "Employee not found", 404)
 		return
 	}
@@ -83,6 +84,7 @@ func (c *CompanyHandler) GetCompany(rw http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(rw)
 	err = enc.Encode(NewCompanyRequest(resp.ID, resp.Name, resp.LegalForm))
 	if err != nil {
+		c.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 		return
 	}
@@ -115,6 +117,7 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 	_, err = c.cc.UpdateCompany(context.Background(), req)
 
 	if err != nil {
+		c.l.Printf("%e ocuured while updating company info", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 	}
 }
@@ -131,6 +134,7 @@ func (c *CompanyHandler) DeleteCompany(rw http.ResponseWriter, r *http.Request) 
 
 	_, err = c.cc.DeleteCompany(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
+		c.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 	}
 }
@@ -154,6 +158,7 @@ func (c *CompanyHandler) GetCompanyEmployees(rw http.ResponseWriter, r *http.Req
 	enc := json.NewEncoder(rw)
 	err = enc.Encode(resp.Employees)
 	if err != nil {
+		c.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 		return
 	}

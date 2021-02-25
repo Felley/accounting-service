@@ -69,6 +69,7 @@ func (e *EmployeeHandler) UpdateEmployee(rw http.ResponseWriter, r *http.Request
 	req := NewEmployeeRequest(employee.ID, employee.Name, employee.SecondName, employee.Surname, employee.HireDate, employee.Position, employee.CompanyID)
 	_, err := e.ec.UpdateEmployee(context.Background(), req)
 	if err != nil {
+		e.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 	}
 }
@@ -92,6 +93,7 @@ func (e *EmployeeHandler) GetEmployee(rw http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(rw)
 	err = enc.Encode(NewEmployeeRequest(resp.ID, resp.Name, resp.SecondName, resp.Surname, resp.HireDate, resp.Position, resp.CompanyID))
 	if err != nil {
+		e.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 		return
 	}
@@ -132,6 +134,7 @@ func (e *EmployeeHandler) PostFormEmployee(rw http.ResponseWriter, r *http.Reque
 	req := NewEmployeeRequest(employee.ID, employee.Name, employee.SecondName, employee.Surname, employee.HireDate, employee.Position, employee.CompanyID)
 	_, err = e.ec.UpdateEmployee(context.Background(), req)
 	if err != nil {
+		e.l.Printf("%e ocuured while sending answer", err)
 		http.Error(rw, "Unexpected error while sending answer", 404)
 	}
 

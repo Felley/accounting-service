@@ -5,97 +5,96 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/Felley/accounting-service/api/data"
 	"github.com/Felley/accounting-service/protos/accounting"
-	"github.com/gorilla/mux"
 )
 
-// CompanyHandler ...
+// CompanyHandler struct is a handler struct which is gRPC company client,
+// it also logs errors in terminal
 type CompanyHandler struct {
 	l  *log.Logger
 	cc accounting.CompanyAccountingClient
 }
 
-// NewCompanyHandler ...
+// NewCompanyHandler creates handler for company API processing
 func NewCompanyHandler(l *log.Logger, cc accounting.CompanyAccountingClient) *CompanyHandler {
 	return &CompanyHandler{l, cc}
 }
 
-// AddCompany ...
+// NewCompanyRequest creates CompanyRequestStruct filling it's data
+func NewCompanyRequest(id int64, name string, legalForm string) *accounting.CompanyRequest {
+	return &accounting.CompanyRequest{
+		ID:        id,
+		Name:      name,
+		LegalForm: legalForm,
+	}
+}
+
+// AddCompany sends query for adding company to DB
 func (c *CompanyHandler) AddCompany(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
+
 	value := r.Context().Value(companyKey{})
 	company := value.(*data.Company)
 
-	req := &accounting.CompanyRequest{
-		ID:        company.ID,
-		Name:      company.Name,
-		LegalForm: company.LegalForm,
-	}
+	req := NewCompanyRequest(company.ID, company.Name, company.LegalForm)
 
 	_, err := c.cc.AddCompany(context.Background(), req)
 	if err != nil {
+		c.l.Printf("%e ocuured while adding company to DB", err)
 		http.Error(rw, "Invalid input", 405)
 		return
 	}
 }
 
-// UpdateCompany ...
+// UpdateCompany updates company data in DB
 func (c *CompanyHandler) UpdateCompany(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
+
 	value := r.Context().Value(companyKey{})
 	company := value.(*data.Company)
 
-	req := &accounting.CompanyRequest{
-		ID:        company.ID,
-		Name:      company.Name,
-		LegalForm: company.LegalForm,
-	}
+	req := NewCompanyRequest(company.ID, company.Name, company.LegalForm)
 
 	_, err := c.cc.UpdateCompany(context.Background(), req)
-	if err != nil {
-		http.Error(rw, "Invalid input", 405)
-		return
-	}
-}
-
-// GetCompany ...
-func (c *CompanyHandler) GetCompany(rw http.ResponseWriter, r *http.Request) {
-	rw.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
-	if err != nil || id < 1 {
-		http.Error(rw, "Invalid ID supplied", 400)
-		return
-	}
-	resp, err := c.cc.GetCompany(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
 		http.Error(rw, "Employee not found", 404)
 		return
 	}
+}
+
+// GetCompany looks for company in DB by specified id
+func (c *CompanyHandler) GetCompany(rw http.ResponseWriter, r *http.Request) {
+	rw.Header().Set("Content-Type", "application/json")
+
+	id, err := extractIDFromLink(rw, r)
+	if err != nil || id < 1 {
+		http.Error(rw, "Invalid ID supplied", 400)
+		return
+	}
+
+	resp, err := c.cc.GetCompany(context.Background(), &accounting.CompanyRequest{ID: id})
+	if err != nil {
+		http.Error(rw, "Company not found", 404)
+		return
+	}
+
 	enc := json.NewEncoder(rw)
-	err = enc.Encode(&data.Company{
-		ID:        resp.ID,
-		Name:      resp.Name,
-		LegalForm: resp.LegalForm,
-	})
+	err = enc.Encode(NewCompanyRequest(resp.ID, resp.Name, resp.LegalForm))
 	if err != nil {
 		http.Error(rw, "Unexpected error while sending answer", 404)
 		return
 	}
 }
 
-// PostFormCompany ...
+// PostFormCompany updates company data by incomming form data
 func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 
-	vars := mux.Vars(r)
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
-
+	id, err := extractIDFromLink(rw, r)
 	if err != nil {
-		http.Error(rw, "Invalid ID supplied", 400)
+		http.Error(rw, "Invalid input", 400)
 		return
 	}
 	err = r.ParseMultipartForm(128 * 1024)
@@ -104,11 +103,7 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 		return
 	}
 
-	company := &data.Company{
-		ID:        id,
-		Name:      r.Form.Get("name"),
-		LegalForm: r.Form.Get("status"),
-	}
+	company := data.NewCompany(id, r.Form.Get("name"), r.Form.Get("status"))
 
 	err = company.Validate()
 	if err != nil {
@@ -116,11 +111,7 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 		return
 	}
 
-	req := &accounting.CompanyRequest{
-		ID:        company.ID,
-		Name:      company.Name,
-		LegalForm: company.LegalForm,
-	}
+	req := NewCompanyRequest(company.ID, company.Name, company.LegalForm)
 	_, err = c.cc.UpdateCompany(context.Background(), req)
 
 	if err != nil {
@@ -128,36 +119,38 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 	}
 }
 
-// DeleteCompany ...
+// DeleteCompany deletes company by specified id
 func (c *CompanyHandler) DeleteCompany(rw http.ResponseWriter, r *http.Request) {
-
 	rw.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
+
+	id, err := extractIDFromLink(rw, r)
 	if err != nil {
 		http.Error(rw, "Invalid ID supplied", 400)
 		return
 	}
+
 	_, err = c.cc.DeleteCompany(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
 		http.Error(rw, "Unexpected error while sending answer", 404)
 	}
 }
 
-// GetCompanyEmployees ...
+// GetCompanyEmployees get's company employees
 func (c *CompanyHandler) GetCompanyEmployees(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
-	vars := mux.Vars(r)
-	id, err := strconv.ParseInt(vars["id"], 10, 64)
-	if err != nil || id < 1 {
+
+	id, err := extractIDFromLink(rw, r)
+	if err != nil {
 		http.Error(rw, "Invalid ID supplied", 400)
 		return
 	}
+
 	resp, err := c.cc.GetCompanyEmployees(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
 		http.Error(rw, "Company not found", 404)
 		return
 	}
+
 	enc := json.NewEncoder(rw)
 	err = enc.Encode(resp.Employees)
 	if err != nil {
@@ -168,7 +161,7 @@ func (c *CompanyHandler) GetCompanyEmployees(rw http.ResponseWriter, r *http.Req
 
 type companyKey struct{}
 
-// MiddlewareCompanyValidation ...
+// MiddlewareCompanyValidation validates incoming json data
 func (c *CompanyHandler) MiddlewareCompanyValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Type", "application/json")
@@ -176,13 +169,19 @@ func (c *CompanyHandler) MiddlewareCompanyValidation(next http.Handler) http.Han
 
 		err := company.FromJSON(r.Body)
 		if err != nil {
-			http.Error(rw, "Invalid input", 405)
+			http.Error(rw, "Validation exception", 405)
 			return
 		}
 		defer r.Body.Close()
+
+		if company.ID < 1 {
+			http.Error(rw, "Invalid ID supplied", 400)
+			return
+		}
+
 		err = company.Validate()
 		if err != nil {
-			http.Error(rw, "Invalid input", 405)
+			http.Error(rw, "Validation exception", 405)
 			return
 		}
 		ctx := context.WithValue(r.Context(), companyKey{}, company)

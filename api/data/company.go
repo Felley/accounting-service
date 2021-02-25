@@ -9,9 +9,18 @@ import (
 
 // Company defines the structure for API
 type Company struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	LegalForm string `json:"legalForm" validate:"legalForm"`
+	ID        int64  `json:"id" validate:"omitempty,numeric"`
+	Name      string `json:"name" validate:"required"`
+	LegalForm string `json:"legalForm" validate:"omitempty,legalForm"`
+}
+
+// NewCompany creates new Employee struct from incoming data
+func NewCompany(id int64, name string, legalForm string) *Company {
+	return &Company{
+		ID:        id,
+		Name:      name,
+		LegalForm: legalForm,
+	}
 }
 
 // FromJSON unmarshalls []bytes to Company struct
@@ -20,7 +29,7 @@ func (e *Company) FromJSON(r io.Reader) error {
 	return decoder.Decode(e)
 }
 
-// Validate function validates incoming legalForm field from JSON
+// Validate function validates incoming JSON fields
 func (e *Company) Validate() error {
 	validate := validator.New()
 	validate.RegisterValidation("legalForm", validateLegalForm, false)

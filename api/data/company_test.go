@@ -17,6 +17,30 @@ func TestCheckCompanyValidation(t *testing.T) {
 			&Company{},
 			errors.New("Empty struct"),
 		},
+		{
+			"Correct",
+			&Company{
+				ID:        1,
+				Name:      "Test",
+				LegalForm: "OAO",
+			},
+			nil,
+		},
+		{
+			"No name",
+			&Company{
+				ID:        1,
+				LegalForm: "OAO",
+			},
+			errors.New("Name is not defined"),
+		},
+		{
+			"Correct with only name",
+			&Company{
+				Name: "Test",
+			},
+			nil,
+		},
 	}
 
 	for _, test := range tableDrivenTests {

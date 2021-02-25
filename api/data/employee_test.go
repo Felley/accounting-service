@@ -25,14 +25,28 @@ func TestCheckEmployeeValidation(t *testing.T) {
 			},
 			errors.New("Invalid date"),
 		},
-
 		{
-			"Wrong date",
+			"No name specified",
 			&Employee{
-				Name:     "Aaron",
+				Surname:  "Aaron",
 				HireDate: "2020-09-01",
 			},
+			errors.New("No name specified"),
+		},
+		{
+			"Correct with only name",
+			&Employee{
+				Name: "Aaron",
+			},
 			nil,
+		},
+		{
+			"Invalid Name",
+			&Employee{
+				Name:     "2",
+				HireDate: "2020-09-01",
+			},
+			errors.New("Name has digits"),
 		},
 	}
 

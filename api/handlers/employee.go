@@ -172,7 +172,7 @@ func (e *EmployeeHandler) MiddlewareEmployeeValidation(next http.Handler) http.H
 		}
 		defer r.Body.Close()
 
-		if employee.ID < 1 {
+		if employee.ID < 0 || employee.CompanyID < 0 {
 			http.Error(rw, "Invalid ID supplied", 400)
 			return
 		}

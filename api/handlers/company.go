@@ -42,8 +42,8 @@ func (c *CompanyHandler) AddCompany(rw http.ResponseWriter, r *http.Request) {
 
 	_, err := c.cc.AddCompany(context.Background(), req)
 	if err != nil {
-		c.l.Printf("%e ocuured while adding company to DB", err)
-		http.Error(rw, "Invalid input", 405)
+		c.l.Printf("%e ocuured while updating company info", err)
+		http.Error(rw, "Company not found", 404)
 		return
 	}
 }
@@ -60,7 +60,7 @@ func (c *CompanyHandler) UpdateCompany(rw http.ResponseWriter, r *http.Request) 
 	_, err := c.cc.UpdateCompany(context.Background(), req)
 	if err != nil {
 		c.l.Printf("%e ocuured while updating company info", err)
-		http.Error(rw, "Employee not found", 404)
+		http.Error(rw, "Company not found", 404)
 		return
 	}
 }
@@ -117,8 +117,8 @@ func (c *CompanyHandler) PostFormCompany(rw http.ResponseWriter, r *http.Request
 	_, err = c.cc.UpdateCompany(context.Background(), req)
 
 	if err != nil {
-		c.l.Printf("%e ocuured while updating company info", err)
-		http.Error(rw, "Unexpected error while sending answer", 404)
+		http.Error(rw, "Company not found", 404)
+		return
 	}
 }
 
@@ -134,8 +134,8 @@ func (c *CompanyHandler) DeleteCompany(rw http.ResponseWriter, r *http.Request) 
 
 	_, err = c.cc.DeleteCompany(context.Background(), &accounting.CompanyRequest{ID: id})
 	if err != nil {
-		c.l.Printf("%e ocuured while sending answer", err)
-		http.Error(rw, "Unexpected error while sending answer", 404)
+		http.Error(rw, "Company not found", 404)
+		return
 	}
 }
 

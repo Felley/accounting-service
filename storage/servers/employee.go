@@ -1,11 +1,13 @@
 package servers
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/Felley/accounting-service/protos/accounting"
 )
@@ -14,15 +16,16 @@ import (
 type EmployeeServer struct {
 	db *sql.DB
 	l  *log.Logger
+	mu *sync.Mutex
 	accounting.UnimplementedEmployeeAccountingServer
 }
 
 // NewEmployeeServer returns new employee storage processing server
-func NewEmployeeServer(db *sql.DB, l *log.Logger) *EmployeeServer {
-	return &EmployeeServer{db: db, l: l}
+func NewEmployeeServer(db *sql.DB, l *log.Logger, mu *sync.Mutex) *EmployeeServer {
+	return &EmployeeServer{db: db, l: l, mu: mu}
 }
 
-// AddEmployee ...
+// AddEmployee adds employee to DB
 func (es *EmployeeServer) AddEmployee(ctx context.Context, req *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
 	var query string
 	if req.ID != 0 {
@@ -32,36 +35,59 @@ func (es *EmployeeServer) AddEmployee(ctx context.Context, req *accounting.Emplo
 	query = fmt.Sprintf("INSERT employee (name, second_name, surname, hire_date, position, company_id) VALUES ('%s', '%s', '%s', '%s', '%s', %d);",
 		req.Name, req.SecondName, req.Surname, req.HireDate, req.Position, req.CompanyID)
 
-	fmt.Println(query)
-	_, err := es.db.Query(query)
+	es.mu.Lock()
+	_, err := es.db.Exec(query)
+	es.mu.Unlock()
 	if err != nil {
 		es.l.Printf("%s occured while executing AddEmployee SQL query", err.Error())
 		return nil, err
 	}
-
 	return &accounting.EmployeeResponce{StatusCode: 200}, nil
 }
 
-// UpdateEmployee ...
+// UpdateEmployee updates employee specified info
 func (es *EmployeeServer) UpdateEmployee(ctx context.Context, req *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
-	query := fmt.Sprintf("UPDATE employee SET name = '%s', second_name = '%s', surname = '%s', hire_date = '%s', position = '%s', company_id = %d WHERE id = %d",
-		req.Name, req.SecondName, req.Surname, req.HireDate, req.Position, req.CompanyID, req.ID)
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("UPDATE employee SET name = '%s'", req.Name))
+	if req.SecondName != "" {
+		buffer.WriteString(fmt.Sprintf(", second_name = '%s'", req.SecondName))
+	}
+	if req.Surname != "" {
+		buffer.WriteString(fmt.Sprintf(", surname = '%s'", req.Surname))
+	}
+	if req.HireDate != "" {
+		buffer.WriteString(fmt.Sprintf(", hire_date = '%s'", req.HireDate))
+	}
+	if req.Position != "" {
+		buffer.WriteString(fmt.Sprintf(", position = '%s'", req.Position))
+	}
+	if req.CompanyID != 0 {
+		buffer.WriteString(fmt.Sprintf(", company_id = %d", req.CompanyID))
+	}
+	buffer.WriteString(fmt.Sprintf(" WHERE id = %d", req.ID))
+	query := buffer.String()
 
-	fmt.Println(query)
-	_, err := es.db.Query(query)
+	es.mu.Lock()
+	res, err := es.db.Exec(query)
+	es.mu.Unlock()
 	if err != nil {
 		es.l.Printf("%s occured while executing UpdateEmployee SQL query", err.Error())
 		return nil, err
 	}
+
+	if n, err := res.RowsAffected(); err != nil || n == 0 {
+		return nil, errors.New("Employee not found")
+	}
 	return &accounting.EmployeeResponce{StatusCode: 200}, nil
 }
 
-// GetEmployee ...
+// GetEmployee gets employee by specified id
 func (es *EmployeeServer) GetEmployee(ctx context.Context, req *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
 	query := fmt.Sprintf("SELECT * FROM employee WHERE id = %d", req.ID)
 
-	fmt.Println(query)
+	es.mu.Lock()
 	rows, err := es.db.Query(query)
+	es.mu.Unlock()
 	if err != nil {
 		es.l.Printf("%s occured while executing UpdateEmployee SQL query", err.Error())
 		return nil, err
@@ -81,15 +107,20 @@ func (es *EmployeeServer) GetEmployee(ctx context.Context, req *accounting.Emplo
 	return nil, errors.New("Employee not found")
 }
 
-// DeleteEmployee ...
+// DeleteEmployee deletes employee by specified id
 func (es *EmployeeServer) DeleteEmployee(ctx context.Context, req *accounting.EmployeeRequest) (*accounting.EmployeeResponce, error) {
 	query := fmt.Sprintf("DELETE FROM employee WHERE id = %d", req.ID)
 
-	fmt.Println(query)
-	_, err := es.db.Query(query)
+	es.mu.Lock()
+	res, err := es.db.Exec(query)
+	es.mu.Unlock()
 	if err != nil {
 		es.l.Printf("%s occured while executing UpdateEmployee SQL query", err.Error())
 		return nil, err
+	}
+
+	if n, err := res.RowsAffected(); err != nil || n == 0 {
+		return nil, errors.New("Employee not found")
 	}
 	return &accounting.EmployeeResponce{StatusCode: 200}, nil
 }

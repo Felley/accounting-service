@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 
 	"github.com/Felley/accounting-service/protos/accounting"
 	"github.com/Felley/accounting-service/storage/servers"
@@ -16,6 +17,7 @@ import (
 
 // Starting storage processing service
 func main() {
+	var mu sync.Mutex
 	gc := grpc.NewServer()
 	employeeServerLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
 	companyServerLogger := log.New(os.Stdout, "employee-api", log.LstdFlags)
@@ -27,8 +29,8 @@ func main() {
 	_ = tables.CreateEmployeeTable(db)
 	_ = tables.CreateCompanyTable(db)
 	_ = tables.ListTables(db)
-	es := servers.NewEmployeeServer(db, employeeServerLogger)
-	cs := servers.NewCompanyServer(db, companyServerLogger)
+	es := servers.NewEmployeeServer(db, employeeServerLogger, &mu)
+	cs := servers.NewCompanyServer(db, companyServerLogger, &mu)
 	defer db.Close()
 
 	accounting.RegisterEmployeeAccountingServer(gc, es)

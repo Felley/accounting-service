@@ -6,23 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/Felley/accounting-service/protos/accounting"
 )
 
-// CompanyServer ...
+// CompanyServer struct is gRPC server, that processes company data updates
 type CompanyServer struct {
 	db *sql.DB
 	l  *log.Logger
+	mu *sync.Mutex
 	accounting.UnimplementedCompanyAccountingServer
 }
 
 // NewCompanyServer returns new employee storage processing server
-func NewCompanyServer(db *sql.DB, l *log.Logger) *CompanyServer {
-	return &CompanyServer{db: db, l: l}
+func NewCompanyServer(db *sql.DB, l *log.Logger, mu *sync.Mutex) *CompanyServer {
+	return &CompanyServer{db: db, l: l, mu: mu}
 }
 
-// AddCompany ...
+// AddCompany adds company to DB
 func (cs *CompanyServer) AddCompany(ctx context.Context, req *accounting.CompanyRequest) (*accounting.CompanyResponce, error) {
 	var query string
 	if req.ID != 0 {
@@ -31,8 +33,9 @@ func (cs *CompanyServer) AddCompany(ctx context.Context, req *accounting.Company
 
 	query = fmt.Sprintf("INSERT company (name, legal_form) VALUES ('%s', '%s');", req.Name, req.LegalForm)
 
-	fmt.Println(query)
-	_, err := cs.db.Query(query)
+	cs.mu.Lock()
+	_, err := cs.db.Exec(query)
+	cs.mu.Unlock()
 	if err != nil {
 		cs.l.Printf("%s occured while executing AddCompany SQL query", err.Error())
 		return nil, err
@@ -41,25 +44,35 @@ func (cs *CompanyServer) AddCompany(ctx context.Context, req *accounting.Company
 	return &accounting.CompanyResponce{StatusCode: 200}, nil
 }
 
-// UpdateCompany ...
+// UpdateCompany updated company specified info
 func (cs *CompanyServer) UpdateCompany(ctx context.Context, req *accounting.CompanyRequest) (*accounting.CompanyResponce, error) {
 	query := fmt.Sprintf("UPDATE company SET name = '%s', legal_form = '%s' WHERE id = %d", req.Name, req.LegalForm, req.ID)
+	if req.LegalForm == "" {
+		query = fmt.Sprintf("UPDATE company SET name = '%s' WHERE id = %d", req.Name, req.ID)
+	}
 
-	fmt.Println(query)
-	_, err := cs.db.Query(query)
+	cs.mu.Lock()
+	res, err := cs.db.Exec(query)
+	cs.mu.Unlock()
 	if err != nil {
 		cs.l.Printf("%s occured while executing UpdateCompany SQL query", err.Error())
 		return nil, err
 	}
+
+	if n, err := res.RowsAffected(); err != nil || n == 0 {
+		return nil, errors.New("Company not found")
+	}
+
 	return &accounting.CompanyResponce{StatusCode: 200}, nil
 }
 
-// GetCompany ...
+// GetCompany gets company by id
 func (cs *CompanyServer) GetCompany(ctx context.Context, req *accounting.CompanyRequest) (*accounting.CompanyResponce, error) {
 	query := fmt.Sprintf("SELECT * FROM company WHERE id = %d", req.ID)
 
-	fmt.Println(query)
+	cs.mu.Lock()
 	rows, err := cs.db.Query(query)
+	cs.mu.Unlock()
 	if err != nil {
 		cs.l.Printf("%s occured while executing GetCompany SQL query", err.Error())
 		return nil, err
@@ -76,15 +89,16 @@ func (cs *CompanyServer) GetCompany(ctx context.Context, req *accounting.Company
 		return e, nil
 	}
 
-	return nil, errors.New("Employee not found")
+	return nil, errors.New("Company not found")
 }
 
-// GetCompanyEmployees ...
+// GetCompanyEmployees gets company employees for specified company id
 func (cs *CompanyServer) GetCompanyEmployees(ctx context.Context, req *accounting.CompanyRequest) (*accounting.CompanyEmployeesResponce, error) {
 	query := fmt.Sprintf("SELECT * FROM employee WHERE company_id = %d", req.ID)
 
-	fmt.Println(query)
+	cs.mu.Lock()
 	rows, err := cs.db.Query(query)
+	cs.mu.Unlock()
 	if err != nil {
 		cs.l.Printf("%s occured while executing GetCompany SQL query", err.Error())
 		return nil, err
@@ -109,15 +123,20 @@ func (cs *CompanyServer) GetCompanyEmployees(ctx context.Context, req *accountin
 	return &accounting.CompanyEmployeesResponce{Employees: employees}, nil
 }
 
-// DeleteCompany ...
+// DeleteCompany deletes company by id
 func (cs *CompanyServer) DeleteCompany(ctx context.Context, req *accounting.CompanyRequest) (*accounting.CompanyResponce, error) {
 	query := fmt.Sprintf("DELETE FROM company WHERE id = %d", req.ID)
 
-	fmt.Println(query)
-	_, err := cs.db.Query(query)
+	cs.mu.Lock()
+	res, err := cs.db.Exec(query)
+	cs.mu.Unlock()
 	if err != nil {
 		cs.l.Printf("%s occured while executing DeleteCompany SQL query", err.Error())
 		return nil, err
+	}
+
+	if n, err := res.RowsAffected(); err != nil || n == 0 {
+		return nil, errors.New("Company not found")
 	}
 	return &accounting.CompanyResponce{StatusCode: 200}, nil
 }

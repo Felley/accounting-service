@@ -68,16 +68,28 @@ func (es *EmployeeServer) UpdateEmployee(ctx context.Context, req *accounting.Em
 	query := buffer.String()
 
 	es.mu.Lock()
-	res, err := es.db.Exec(query)
-	es.mu.Unlock()
+	rows, err := es.db.Query(fmt.Sprintf("SELECT * FROM employee WHERE id = %d", req.ID))
 	if err != nil {
 		es.l.Printf("%s occured while executing UpdateEmployee SQL query", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
-	if n, err := res.RowsAffected(); err != nil || n == 0 {
+	found := false
+	for rows.Next() {
+		e := &accounting.EmployeeResponce{}
+		err := rows.Scan(&e.ID, &e.Name, &e.SecondName, &e.Surname, &e.HireDate, &e.Position, &e.CompanyID)
+		if err != nil {
+			es.l.Println(err)
+			return nil, err
+		}
+		found = true
+	}
+	if !found {
 		return nil, errors.New("Employee not found")
 	}
+	_, _ = es.db.Exec(query)
+	es.mu.Unlock()
 	return &accounting.EmployeeResponce{StatusCode: 200}, nil
 }
 

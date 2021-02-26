@@ -52,16 +52,28 @@ func (cs *CompanyServer) UpdateCompany(ctx context.Context, req *accounting.Comp
 	}
 
 	cs.mu.Lock()
-	res, err := cs.db.Exec(query)
-	cs.mu.Unlock()
+	rows, err := cs.db.Query(fmt.Sprintf("SELECT * FROM company WHERE id = %d", req.ID))
 	if err != nil {
 		cs.l.Printf("%s occured while executing UpdateCompany SQL query", err.Error())
 		return nil, err
 	}
+	defer rows.Close()
 
-	if n, err := res.RowsAffected(); err != nil || n == 0 {
+	found := false
+	for rows.Next() {
+		e := &accounting.CompanyResponce{}
+		err := rows.Scan(&e.ID, &e.Name, &e.LegalForm)
+		if err != nil {
+			cs.l.Println(err)
+			return nil, err
+		}
+		found = true
+	}
+	if !found {
 		return nil, errors.New("Company not found")
 	}
+	_, _ = cs.db.Exec(query)
+	cs.mu.Unlock()
 
 	return &accounting.CompanyResponce{StatusCode: 200}, nil
 }
